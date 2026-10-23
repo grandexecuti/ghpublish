@@ -844,15 +844,18 @@ def cmd_publish(args) -> None:
 
     full = args.owner + "/" + name if args.owner else None
     if args.topics:
-        topic_args = ["repo", "edit"]
-        topic_args.append(full or name)
+        topic_args = ["repo", "edit"] + ([full] if full else [])
         for t in [x.strip() for x in args.topics.split(",") if x.strip()]:
             topic_args += ["--add-topic", t]
-        gh(*topic_args, check=False)
+        res = gh(*topic_args, check=False, cwd=root)
+        if res.returncode != 0:
+            out(f"提示: topics 设置失败 ({(res.stderr or res.stdout).strip()})")
     if args.desc and existing:
-        gh("repo", "edit", full or name, "--description", args.desc, check=False)
+        gh("repo", "edit", *([full] if full else []), "--description", args.desc,
+           check=False, cwd=root)
 
-    res = gh("repo", "view", full or name, "--json", "url,visibility", check=False)
+    res = gh("repo", "view", *([full] if full else []), "--json", "url,visibility",
+             check=False, cwd=root)
     url = ""
     if res.returncode == 0:
         try:
